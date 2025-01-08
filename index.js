@@ -4,7 +4,7 @@ const { auth, JWT_SECRET } = require("./auth");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt")
-mongoose.connect("")
+mongoose.connect("mongodb://localhost:27017")
 
 const app = express();
 app.use(express.json());
@@ -14,10 +14,10 @@ app.post("/signup", async function (req, res) {
     const password = req.body.password;
     const name = req.body.name;
     const hashedpassword = await bcrypt.hash(password, 5,)
-    
-   await UserModel.create({
+
+    await UserModel.create({
         email: email,
-        password:hashedpassword,
+        password: hashedpassword,
         name: name
     });
     res.json({
@@ -29,13 +29,18 @@ app.post("/signup", async function (req, res) {
 app.post("/signin", async function (req, res) {
     const email = req.body.email;
     const password = req.body.password;
-
     const response = await UserModel.findOne({
         email: email,
-        password: password,
     });
+    if (!response) {
+        res.status(403).json({
+            message: "User does not  exist in db"
+        })
 
-    if (response) {
+    }
+
+    const matchPassword = await bcrypt.compare(password, response.password)
+    if (matchPassword) {
         const token = jwt.sign({
             id: response._id.toString()
         }, JWT_SECRET);
